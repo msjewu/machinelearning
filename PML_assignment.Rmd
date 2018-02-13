@@ -1,0 +1,128 @@
+---
+title: "PML Project"
+output: html_document
+---
+
+```{r, echo=FALSE}
+setwd("D:/Courses/8 - Practical Machine Learning/Course Project")
+```
+
+##Introduction
+
+Six participants were asked to perform barbell lifts correctly (Class A) and incorrectly in different ways (Class B = throwing the elbows to the front, Class C = lifting the dumbell halfway, Class D = lowering the dumbell halfway, Class E = throwing the hips to the front).  Accelerometers readings on the belt, forearm, arm, and dumbell were recorded.
+
+This project attempts to predict, based on the data, the manner in which the participants performed the exercise.
+
+Because this is a classification problem, we will attempt to use the classification tree and random forest methods to model the data.
+
+##Method
+
+##Step 1. Import the data and load the necessary packages
+```{r, message=FALSE, warning=FALSE}
+training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+                     stringsAsFactors=F, na.strings=c("","NA"))
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+                   stringsAsFactors=F, na.strings=c("","NA"))
+                   
+
+library(caret)
+library(rpart)
+library(rattle)
+library(randomForest)
+```
+Look at output variable 'classe'
+```{r}
+str(training$classe)
+```
+Factor the output variable 'classe'
+```{r}
+training$classe <- as.factor(training$classe)
+```
+
+##Step 2. Create training and validation sets, using a split of 70/30.
+Name the new data sets 'train' and 'validation.'
+```{r}
+set.seed(123)
+inTrain <- createDataPartition(training$classe, p=0.7, list=FALSE)
+train <- training[inTrain,]
+validation <- training[-inTrain,]
+```
+The 'train' set has 13737 observations.  
+The 'validation' set has 5885 observations.  
+
+##Step 3. Examine the data and reduce the number of predictor variables.
+Examine the 'train' dataset
+```{r, eval=FALSE}
+str(train)
+summary(train)
+names(train)
+```
+Find the index of variables with > 95% NAs in the columns. Call this 'index1.'  We want to exclude these variables.
+```{r}
+percNAcol <- apply(train, 2, function(x){sum(is.na(x))})/nrow(train)
+index1 <- which(percNAcol > 0.95)
+```
+
+Find the index of variables with near zero variance. Call this 'index2.'  We want to exclude these variables.
+```{r}
+nsv <- nearZeroVar(train,saveMetrics=TRUE)
+index2 <- which(nsv$nzv=='TRUE')
+```
+Create a vector called 'exclude' that combines the unique values of 'index1', 'index2', and the first 7 columns of 'train'.  We want to exclude the first 7 columns since the observation number, test subjects' names, and timestamps would not be useful as predictors in the real world.
+```{r}
+exclude <- unique(c(1:7,index1,index2))
+```
+Remove the the variables listed in 'exclude' from the 'train', 'validation', and 'testing' data sets
+```{r}
+train <- train[,-exclude]
+validation <- validation[,-exclude]
+testing <- testing[,-exclude]
+```
+Look at the resulting 'train' data set
+```{r,eval=FALSE}
+summary(train)
+```
+```{r}
+str(train)
+```
+We have reduced the number of predictors to 52.  
+All the predictors look correct as integers or numeric (they are all measurements)
+
+##Step 4 - Use a prediction algorithm to model the data (decision trees).
+Try using decision trees as a prediction algorithm
+Use the default 10 folds for cross-validation
+```{r}
+modFit <- train(classe ~., data=train, method='rpart', trControl = trainControl(method='cv'))
+# Plot the decision tree
+fancyRpartPlot(modFit$finalModel)
+```
+  
+Check accuracy on validation data
+```{r}
+confusionMatrix(predict(modFit,validation), validation$classe)
+```
+Decision tree algorithm predicts with low accuracy (55%) on the validation set.
+
+##Step 5 - Use a different prediction algorithm to model the data (random forests).
+Try using random forests as a prediction algorithm.
+Use 3 folds for cross-validation to save time and processing power
+```{r}
+modFit <- train(classe ~., data=train, method='rf', trControl = trainControl(method='cv', number = 3))
+```
+
+Check accuracy on validation data
+```{r}
+confusionMatrix(predict(modFit,validation), validation$classe)
+```
+Random forest algorithm predicts with high accuracy (99%) on the validation set.
+
+##Step 6 - Predict on test set using our best model (random forest)
+```{r}
+predict(modFit,testing)
+```
+##Conclusion
+Upon analysis of the data, we reduced the number of predictor variables to 52 by removing those with greater than 95% NA's, those with near zero variance, and other descriptor variables such as names and timestamps that wouldn't be useful in a real life scenario. 
+
+Using a decision tree model with 10-fold cross-validation did not prove to be very accurate (55.2%) when tested on the validation set. 
+
+Our preferred method to model the data is with random forests using 3-fold cross-validation, which provides an accuracy of 99.2% when tested on the validation set.  This means our estimated out-of-sample error is less than 1%.
