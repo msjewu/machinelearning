@@ -9,7 +9,7 @@ setwd("D:/Courses/8 - Practical Machine Learning/Course Project")
 
 ##Introduction
 
-Six participants were asked to perform barbell lifts correctly (Class A) and incorrectly in different ways (Class B = throwing the elbows to the front, Class C = lifting the dumbell halfway, Class D = lowering the dumbell halfway, Class E = throwing the hips to the front).  Accelerometers readings on the belt, forearm, arm, and dumbell were recorded.
+Six participants were asked to perform barbell lifts correctly (Class A) and incorrectly in different ways (Class B = throwing the elbows to the front, Class C = lifting the dumbbell halfway, Class D = lowering the dumbbell halfway, Class E = throwing the hips to the front).  Accelerometers readings on the belt, forearm, arm, and dumbbell were recorded.
 
 This project attempts to predict, based on the data, the manner in which the participants performed the exercise.
 
